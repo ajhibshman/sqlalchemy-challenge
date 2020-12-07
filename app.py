@@ -29,6 +29,11 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
+        f"/api/v1.0/start_date/end_date<br/>"
+        f"    Enter dates in year-month-date format<br/>"
+        f"/api/v1.0/start_date<br/>"
+        f"    Enter date in yyyy-mm-dd format<br/>"  
+        f"date range from Jan 1 2010 to Aug 23 2017" 
     )
 
 # 1) precipitation query
@@ -123,6 +128,60 @@ def tobs():
         tobs_data.append(tobs_dict)
 
     return jsonify(tobs_data)
+
+#4) Return a JSON list of the minimum temperature, the average temperature, and the max temperature for a 
+# given start or start-end range.
+
+#When given the start only, calculate TMIN, TAVG, and TMAX for all dates greater than and equal to the start date.
+@app.route("/api/v1.0/<start_date>")
+def start_temps(start_date):
+    session=Session(engine)
+
+    result5=session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+        filter(Measurement.date >= start_date).all()
+    
+    session.close()
+
+    start_temp_data = []
+    for min, avg, max in result5:
+        start_temp_dict = {}
+        start_temp_dict["Minimum"] = min
+        start_temp_dict["Average"] = avg
+        start_temp_dict["Maximum"] = max
+        start_temp_data.append(start_temp_dict)
+
+    return jsonify(start_temp_data)
+
+
+# When given the start and the end date, calculate the `TMIN`, `TAVG`, and `TMAX` for dates between the start and end date inclusive.
+@app.route("/api/v1.0/<start_date>/<end_date>")
+def calc_temps(start_date, end_date):
+    """TMIN, TAVG, and TMAX for a list of dates.
+    
+    Args:
+        start_date (string): A date string in the format %Y-%m-%d
+        end_date (string): A date string in the format %Y-%m-%d
+        
+    Returns:
+        TMIN, TAVE, and TMAX
+    """
+
+    session = Session(engine)
+
+    result4=session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+        filter(Measurement.date >= start_date).filter(Measurement.date <= end_date).all()
+    
+    session.close()
+
+    temp_data = []
+    for min, avg, max in result4:
+        temp_dict = {}
+        temp_dict["Minimum"] = min
+        temp_dict["Average"] = avg
+        temp_dict["Maximum"] = max
+        temp_data.append(temp_dict)
+
+    return jsonify(temp_data)
 
 
 if __name__ == '__main__':
